@@ -1,0 +1,153 @@
+﻿IT 214- Database Management Systems
+Sample Queries
+Group 5K
+Database for a Bakery
+Shilpi Chaudhuri (201401025)
+Nirvisha Mankad (201401421)
+Twisha Naik (201401425)
+Anishi Mehta (201401439)
+
+
+
+
+1. Whether an order can be completed. Check inventory.
+SELECT p.productid, pname, branchid
+        FROM (SELECT productid, branchid
+                FROM inventory
+                WHERE qtyavailable > 5 AND productid = 101 AND branchid = 105) AS i
+        JOIN product AS p
+        ON i.productid = p.productid
+
+
+2. The ingredients that need to be restocked.
+SELECT ingredientid, iname, qtyavailable, minqty 
+FROM ingredient 
+WHERE qtyavailable < minqty
+
+
+3. Number of employees for each job
+SELECT job, COUNT(empid) AS no_of_employees
+        FROM employee
+        GROUP BY job
+
+
+4. Branches having more than 5 employees.
+SELECT branchid, COUNT(empid) as no_of_employees
+        FROM employee
+        GROUP BY branchid
+        HAVING COUNT(empid) > 5
+        ORDER BY COUNT(empid)
+
+
+5. Least visited branch
+SELECT branchid, min_visits
+FROM (SELECT MIN(no_visits) AS min_visits
+        FROM (SELECT branchid, COUNT(time) AS no_visits
+                FROM visits
+                GROUP BY branchid) AS s) AS s2
+        JOIN (SELECT branchid, COUNT(time) AS no_visits
+                FROM visits
+                GROUP BY branchid) AS s1
+ON s1.no_visits = s2.min_visits
+
+
+
+
+6. Busiest hour of the bakery
+SELECT EXTRACT(HOUR from time) as hour, COUNT(customerid) AS no_of_visits
+        FROM visits 
+        GROUP BY EXTRACT(HOUR from time)
+        ORDER BY no_of_visits DESC
+        LIMIT 1;
+
+
+7. Most frequently visiting customer
+SELECT c.customerid, fname || lname AS name, no_of_visits
+FROM (SELECT customerid, COUNT(time) AS no_of_visits
+FROM visits 
+GROUP BY customerid
+ORDER BY no_of_visits DESC LIMIT 1) as v
+JOIN customer as c
+ON c.customerid = v.customerid;
+
+
+8. Get contact information of members celebrating their birthday today having points greater than 100.
+SELECT * 
+FROM (SELECT memberid, customerid, bdate, points
+                FROM member
+                WHERE bdate = CURRENT_DATE AND points >= 100) AS m
+        JOIN customer_phone AS c
+        ON c.customerid = m.customerid
+
+
+9. Which is the costliest product?
+SELECT productid, pname, price
+FROM (SELECT MAX(costprice) as price
+FROM product) AS cp
+NATURAL JOIN product
+WHERE cp.price = product.costprice
+
+
+
+
+10. Branch with most sales. 
+SELECT *
+FROM (SELECT MAX(amt) AS m_amt
+        FROM (SELECT branchid, SUM(totamt) AS amt
+                FROM sales
+                GROUP BY branchid) AS s) AS s2
+        JOIN (SELECT branchid, SUM(totamt) AS amt
+                FROM sales
+                GROUP BY branchid) AS s1
+ON s1.amt = s2.m_amt;
+
+
+
+
+11. Least popular product that the bakery sold.
+SELECT productid
+FROM((SELECT MIN(sales_made) AS m_sales
+        FROM (SELECT productid, SUM(qty) AS sales_made
+                FROM sales_details
+                GROUP BY productid) AS s2) AS s
+        JOIN (SELECT productid, SUM(qty) AS sales_made
+                FROM sales_details
+                GROUP BY productid) AS s1
+        ON s.m_sales = s1.sales_made) AS s;
+
+
+12. How much quantity of a given product can be made with the given quantity of ingredients. 
+SELECT floor(MIN(unitspossible)) as units
+FROM (SELECT ingredientid, qtyavailable/qty as unitspossible
+FROM recipe NATURAL JOIN ingredient
+WHERE productid = 2) as e
+
+
+13. Products that have sold less than 50 pieces.
+SELECT pname, sales_made
+FROM ((SELECT COUNT(qty) AS sales_made, productid
+FROM sales_details
+GROUP BY productid) as e
+RIGHT OUTER JOIN product
+ON product.productid = e.productid) as q
+WHERE q.sales_made < 50 OR q.sales_made IS NULL;
+
+
+14. List customer information for customers that have visited all branches.
+SELECT customerid, fname || lname AS name FROM customer
+WHERE customerid NOT IN (
+SELECT customerid FROM
+(SELECT customerid, branchid FROM customer, branch
+EXCEPT
+(SELECT customerid, branchid FROM visits)) AS r);
+
+
+
+
+15. Sales where female employees work as manager
+SELECT empid, branchid, gender, sales_made
+FROM employee
+NATURAL JOIN (SELECT branchid, SUM(totamt) AS sales_made
+FROM sales 
+GROUP BY branchid) AS a
+WHERE gender = ‘F’ AND job = ‘manager’;

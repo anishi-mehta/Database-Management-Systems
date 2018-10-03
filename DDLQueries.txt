@@ -1,0 +1,256 @@
+﻿IT 214- Database Management Systems
+DDL Queries
+Group 5K
+Database for a Bakery
+Shilpi Chaudhuri (201401025)
+Nirvisha Mankad (201401421)
+Twisha Naik (201401425)
+Anishi Mehta (201401439)
+
+
+DDL Queries
+
+
+1. customer
+
+
+CREATE TABLE customer (
+        customerid DECIMAL(9,0) CHECK(customerid > 0),
+        fname VARCHAR(20) NOT NULL,
+        minit CHAR(1),
+        lname VARCHAR(20),
+PRIMARY KEY (customerid)
+);
+2. customer_phone
+
+
+CREATE TABLE customer_phone (
+        customerid DECIMAL(9,0),
+        phone DECIMAL (10,0) NOT NULL  CHECK(phone >= 0),
+PRIMARY KEY (customerid, phone),
+FOREIGN KEY (customerid) REFERENCES customer(customerid)
+        ON UPDATE CASCADE  ON DELETE CASCADE 
+);
+
+
+
+
+3. customer_email
+
+
+CREATE TABLE customer_email (
+        customerid DECIMAL(9,0),
+        email VARCHAR(30) NOT NULL,
+PRIMARY KEY (customerid, email),
+FOREIGN KEY (customerid) REFERENCES customer(customerid)
+        ON UPDATE CASCADE  ON DELETE CASCADE
+);
+
+
+
+
+4. member
+
+
+CREATE TABLE member (
+        memberid DECIMAL (9,0)  CHECK(memberid > 0),
+        customerid DECIMAL(9,0) UNIQUE NOT NULL,
+        bdate DATE NOT NULL,
+        points DECIMAL (5,0) DEFAULT 0  CHECK(points > 0),
+PRIMARY KEY (memberid),
+FOREIGN KEY (customerid) REFERENCES customer(customerid)
+        ON UPDATE CASCADE  ON DELETE CASCADE
+);
+
+
+
+
+5. Branch
+
+
+CREATE TABLE branch (
+        branchid DECIMAL(9,0)  CHECK(branchid > 0),
+        location VARCHAR(20) NOT NULL,
+PRIMARY KEY (branchid)
+);
+
+
+
+
+6. visits
+CREATE TABLE visits (
+        customerid DECIMAL(9,0)  CHECK(customerid > 0),
+        time TIMESTAMP,
+        branchid DECIMAL(9,0) NOT NULL,
+PRIMARY KEY (customerid, time),
+FOREIGN KEY (customerid) REFERENCES customer(customerid)
+        ON UPDATE CASCADE  ON DELETE NO ACTION,
+FOREIGN KEY (branchid) REFERENCES branch(branchid)
+        ON UPDATE CASCADE  ON DELETE NO ACTION
+);
+
+
+
+
+7. sales
+
+
+CREATE TABLE sales (
+        billno DECIMAL(9,0)  CHECK(billno > 0),
+        branchid DECIMAL(9,0) NOT NULL,
+        customerid DECIMAL(9,0) NOT NULL,
+        time TIMESTAMP NOT NULL,
+        amount DECIMAL(9,2) NOT NULL  CHECK(amount >= 0),
+        delivery DECIMAL(9,2) DEFAULT 0 NOT NULL  CHECK(delivery >= 0),
+        discount DECIMAL(9,2) DEFAULT 0 NOT NULL  CHECK(discount >= 0),
+        totamt DECIMAL(9,2) NOT NULL  CHECK(totamt >= 0),
+PRIMARY KEY (billno),
+FOREIGN KEY (customerid) REFERENCES customer(customerid)
+        ON UPDATE CASCADE  ON DELETE NO ACTION,
+FOREIGN KEY (branchid) REFERENCES branch(branchid)
+        ON UPDATE CASCADE  ON DELETE NO ACTION
+);
+
+
+
+
+8. Product
+
+
+CREATE TABLE product (
+        productid DECIMAL(9,0) CHECK(productid > 0),
+        pname VARCHAR(20) NOT NULL,
+        costprice DECIMAL(5,2) NOT NULL CHECK(costprice >= 0),
+        sellingprice DECIMAL(5,2) NOT NULL CHECK(sellingprice >= 0),
+PRIMARY KEY (productid)
+);
+
+
+9. sales details
+
+
+CREATE TABLE sales_details (
+        billno DECIMAL(9,0),
+        productid DECIMAL(9,0),
+        qty DECIMAL(5,0) NOT NULL CHECK(qty >= 0),
+        price DECIMAL(9,2) NOT NULL CHECK(price >= 0),
+        amount DECIMAL(9,2) NOT NULL CHECK(amount >= 0),
+PRIMARY KEY (billno, productid),
+FOREIGN KEY (billno) REFERENCES sales(billno)
+ON UPDATE CASCADE ON DELETE CASCADE,
+FOREIGN KEY (productid) REFERENCES product (productid)
+        ON UPDATE CASCADE  ON DELETE NO ACTION
+);
+
+
+
+
+10. Discount
+
+
+CREATE TABLE discount (
+        minamt DECIMAL(9,2) CHECK(minamt >= 0),
+        rate DECIMAL(4,2) DEFAULT 0 CHECK(rate >= 0),
+PRIMARY KEY (minamt)
+);
+
+
+
+
+11. ingredient
+
+
+CREATE TABLE ingredient (
+        ingredientid DECIMAL(9,0) CHECK(ingredientid > 0),
+        iname VARCHAR(20) NOT NULL,
+        price DECIMAL(9,2) NOT NULL CHECK(price >= 0),
+        qtyavailable DECIMAL(9,2) DEFAULT 0 CHECK(qtyavailable >= 0),
+        minqty DECIMAL(9,2) NOT NULL CHECK(minqty >= 0),
+PRIMARY KEY (ingredientid)
+);
+
+
+
+
+12. recipe
+
+
+CREATE TABLE recipe (
+        productid DECIMAL(9,0),
+        ingredientid DECIMAL(9,0),
+        qty DECIMAL(9,2) NOT NULL CHECK(qty >= 0),
+PRIMARY KEY (productid, ingredientid),
+FOREIGN KEY (productid) REFERENCES product(productid)
+ON UPDATE CASCADE  ON DELETE CASCADE,
+FOREIGN KEY (ingredientid) REFERENCES ingredient(ingredientid)
+        ON UPDATE CASCADE ON DELETE NO ACTION
+);
+
+
+
+
+13. purchases
+
+
+CREATE TABLE purchases (
+        pbillno DECIMAL(9,0),
+        time TIMESTAMP,
+        amount DECIMAL(9,2) NOT NULL CHECK(amount >= 0),
+PRIMARY KEY (pbillno)
+);
+
+
+
+
+
+
+
+
+14. Purchase_details
+
+
+CREATE TABLE purchases_details (
+        pbillno DECIMAL(9,0),
+        ingredientid DECIMAL(9,0),
+        qty DECIMAL(9,2) NOT NULL CHECK(qty >= 0),
+        price DECIMAL(9,2) NOT NULL CHECK(price >= 0),
+        amount DECIMAL(9,2) NOT NULL CHECK(amount >= 0),
+PRIMARY KEY (pbillno, ingredientid),
+FOREIGN KEY (pbillno) REFERENCES purchases(pbillno)
+ON UPDATE CASCADE  ON DELETE CASCADE,
+FOREIGN KEY (ingredientid) REFERENCES ingredient(ingredientid)
+        ON UPDATE CASCADE  ON DELETE NO ACTION
+);
+
+
+15. employee
+
+
+CREATE TABLE employee (
+         empid DECIMAL(9,0) CHECK(empid > 0),
+          branchid DECIMAL(9,0) NOT NULL,
+          fname VARCHAR(20) NOT NULL,
+          minit VARCHAR(1),
+lname VARCHAR(20),
+         gender VARCHAR(1) NOT NULL,
+          salary DECIMAL(9,2) NOT NULL CHECK(salary >= 0),
+          job VARCHAR(20) NOT NULL,
+PRIMARY KEY (empid),
+FOREIGN KEY (branchid) REFERENCES branch (branchid)
+        ON UPDATE CASCADE  ON DELETE NO ACTION
+);
+
+
+16. inventory
+
+
+CREATE TABLE inventory (
+        productid DECIMAL(9,0) CHECK(productid > 0),
+        branchid DECIMAL(9,0) CHECK(branchid > 0),
+        qtyavailable DECIMAL(5,0) DEFAULT 0 CHECK(qtyavailable >= 0),
+PRIMARY KEY (productid, branchid),
+FOREIGN KEY (productid) REFERENCES product(productid)
+ON UPDATE CASCADE  ON DELETE CASCADE,
+FOREIGN KEY (branchid) REFERENCES branch(branchid)
+        ON UPDATE CASCADE  ON DELETE CASCADE
+);

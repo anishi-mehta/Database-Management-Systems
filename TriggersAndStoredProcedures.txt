@@ -1,0 +1,313 @@
+﻿IT 214- Database Management Systems
+Stored Procedures and Trigger Functions
+Group 5K
+Database for a Bakery
+Shilpi Chaudhuri (201401025)
+Nirvisha Mankad (201401421)
+Twisha Naik (201401425)
+Anishi Mehta (201401439)
+
+
+
+
+1. Check_birthday()
+
+
+CREATE OR REPLACE FUNCTION bakery.check_birthday() RETURNS SETOF customer_phone AS
+
+
+$BODY$
+
+
+DECLARE cp customer_phone%rowtype;
+
+
+BEGIN
+
+
+FOR cp IN SELECT c.customerid, phone FROM (SELECT memberid, customerid, bdate FROM member WHERE bdate = CURRENT_DATE) AS m JOIN customer_phone AS c ON c.customerid = m.customerid
+LOOP
+        RETURN NEXT cp;
+END LOOP;
+RETURN;
+END;
+
+
+$BODY$
+LANGUAGE plpgsql VOLATILE;
+ALTER FUNCTION bakery.check_birthday()
+  OWNER TO "201401439";
+COMMENT ON FUNCTION bakery.check_birthday()
+  IS 'Checks what members have birthdays today';
+
+
+
+
+
+
+
+
+
+
+2. Check_ingredients()
+
+
+CREATE OR REPLACE FUNCTION bakery.check_ingredients_stock() RETURNS SETOF ingredient AS
+
+
+$BODY$
+
+
+DECLARE i ingredient%rowtype;
+
+
+BEGIN
+
+
+FOR i IN SELECT * FROM ingredient WHERE qtyavailable < minqty
+LOOP
+        RETURN NEXT i;
+END LOOP;
+RETURN;
+END;
+
+
+$BODY$
+LANGUAGE plpgsql VOLATILE;
+ALTER FUNCTION bakery.check_ingredients_stock()
+  OWNER TO "201401439";
+COMMENT ON FUNCTION bakery.check_ingredients_stock()
+  IS 'Checks what ingredients need to be restocked';
+
+
+
+
+3. Insert Visits, Sales and Sales_Details
+
+
+/* Function call
+SELECT generate_new_sales(6,1,1,CAST ('2016-10-12 13:00:34' AS TIMESTAMP WITHOUT TIME ZONE),10,CAST ('{1,2}'AS NUMERIC[]),CAST ('{3,4}'AS NUMERIC[]),2);
+*/
+
+
+CREATE OR REPLACE FUNCTION bakery.generate_new_sales(bno decimal(9,0), bid decimal(9,0), cid decimal(9,0), t timestamp, del decimal(9,2), pid decimal(9,0)[], qty decimal(5,0)[], array_len numeric)
+  RETURNS void AS
+
+
+$BODY$
+
+
+DECLARE stk_qty decimal(5,0):=0;
+DECLARE sp decimal(9,2):=0;
+DECLARE amt decimal(9,2):=0;
+DECLARE tot_amt decimal(9,2):=0;
+DECLARE disc decimal(9,2):=0;
+DECLARE r decimal(4,2):=0;
+DECLARE min decimal(9,2):=0;
+DECLARE final decimal(9,2):=0;
+
+
+BEGIN
+--Checks whether the products the customer buys are in stock.
+FOR i IN 1..array_len 
+LOOP  
+        SELECT qtyavailable into stk_qty from inventory where productid=pid[i] and branchid=bid;
+        IF (qty[i] > stk_qty)
+        THEN RETURN;
+        END IF;
+END LOOP;
+
+
+--Calculates the total amount of the given bill
+FOR j IN 1..array_len 
+LOOP
+SELECT sellingprice INTO sp FROM product WHERE productid = pid[j];
+amt:= sp*qty[j];
+tot_amt:=tot_amt + amt;
+END LOOP;
+
+
+--Calculates the discount based on the total amount of bill
+SELECT minamt, rate INTO min, r FROM discount WHERE minamt<=tot_amt ORDER BY minamt DESC LIMIT 1;
+    disc = 0.01*tot_amt*r;
+    final = tot_amt - disc + del;
+    
+INSERT INTO sales VALUES(bno, bid, cid, t, tot_amt, del, disc, final);
+
+
+FOR j IN 1..array_len 
+LOOP
+        SELECT sellingprice INTO sp FROM product WHERE productid = pid[j];
+        amt:= sp*qty[j];
+           INSERT INTO sales_details VALUES(bno, pid[j], qty[j], sp, amt);
+END LOOP;
+
+
+END
+$BODY$
+
+
+LANGUAGE plpgsql VOLATILE;
+ALTER FUNCTION bakery.generate_new_sales(decimal(9,0), decimal(9,0), decimal(9,0), timestamp, decimal(9,2), decimal(9,0)[], decimal(5,0)[], numeric)
+  OWNER TO "201401439";
+
+
+
+
+4. Insert Purchase, Purchases_Details
+
+
+/* Function call
+SELECT generate_new_purchases(6, CAST ('2016-10-12 13:00:34' AS TIMESTAMP WITHOUT TIME ZONE),CAST ('{1,2}'AS NUMERIC[]),CAST ('{3,4}'AS NUMERIC[]), 2);
+*/
+
+
+CREATE OR REPLACE FUNCTION bakery.generate_new_purchase(pbno decimal(9,0), t timestamp, iid decimal(9,0)[], qty decimal(5,0)[], array_len numeric)
+  RETURNS void AS
+
+
+$BODY$
+
+
+DECLARE sp decimal(9,2);
+DECLARE amt decimal(9,2);
+DECLARE tot_amt decimal(9,2):=0;
+
+
+BEGIN
+
+
+        INSERT INTO purchases VALUES(pbno, t, 0);
+   
+        FOR j IN 1..array_len 
+        LOOP
+        SELECT price INTO sp FROM ingredient WHERE ingredientid = iid[j];
+        amt:= sp*qty[j];
+           INSERT INTO purchases_details VALUES(pbno, iid[j], qty[j], sp, amt);
+           tot_amt:=tot_amt + amt;
+        END LOOP;
+
+
+            UPDATE purchases SET amount = tot_amt where pbillno = pbno;
+END
+$BODY$
+
+
+LANGUAGE plpgsql VOLATILE;
+ALTER FUNCTION bakery.generate_new_purchase(decimal(9,0), timestamp, decimal(9,0)[], decimal(5,0)[], numeric)
+  OWNER TO "201401439";
+
+
+Trigger Functions
+
+
+1. Updating Inventory
+
+
+CREATE TRIGGER change_inventory_qty
+  AFTER INSERT
+  ON bakery.sales_details
+  FOR EACH ROW
+  EXECUTE PROCEDURE bakery.update_inventory();
+
+
+Function:
+
+
+CREATE OR REPLACE FUNCTION bakery.update_inventory()
+  RETURNS trigger AS
+
+
+$BODY$
+
+
+DECLARE bid decimal(9,0);
+
+
+BEGIN
+SELECT branchid INTO bid FROM sales WHERE billno = NEW.billno;
+UPDATE inventory SET qtyavailable = qtyavailable - NEW.qty WHERE productid = NEW.productid AND branchid = bid;
+RETURN NULL;
+END;
+$BODY$
+  LANGUAGE plpgsql VOLATILE;
+ALTER FUNCTION bakery.update_inventory()
+  OWNER TO "201401439";
+
+
+
+
+2. Update Ingredients
+
+
+CREATE TRIGGER change_ingredient_qty
+  AFTER INSERT
+  ON bakery.purchases_details
+  FOR EACH ROW
+  EXECUTE PROCEDURE bakery.update_ingredient();
+
+
+
+
+Function:
+
+
+CREATE OR REPLACE FUNCTION bakery.update_ingredient()
+  RETURNS trigger AS
+
+
+$BODY$
+
+
+BEGIN
+UPDATE ingredient SET qtyavailable = qtyavailable + NEW.qty WHERE ingredientid = NEW.ingredientid;
+RETURN NULL;
+END;
+$BODY$
+  LANGUAGE plpgsql VOLATILE;
+ALTER FUNCTION bakery.update_ingredient()
+  OWNER TO "201401439";
+
+
+
+
+3. Update Member Points
+
+
+CREATE TRIGGER change_points
+  AFTER UPDATE OF totamt
+  ON bakery.sales
+  FOR EACH ROW
+  EXECUTE PROCEDURE bakery.update_points();
+
+
+Function:
+
+
+CREATE OR REPLACE FUNCTION bakery.update_points()
+  RETURNS trigger AS
+
+
+$BODY$
+
+
+DECLARE p decimal(5,2);
+
+
+BEGIN
+
+
+SELECT points INTO p FROM member WHERE customerid = NEW.customerid;
+IF(p>NEW.totamt)
+        THEN UPDATE member SET points = points - NEW.totamt WHERE customerid = NEW.customerid;
+ELSE
+        UPDATE member SET points = points + 0.01*NEW.totamt WHERE customerid = NEW.customerid;
+END IF;
+
+
+RETURN NULL;
+END;
+$BODY$
+  LANGUAGE plpgsql VOLATILE;
+ALTER FUNCTION bakery.update_points()
+  OWNER TO "201401439";

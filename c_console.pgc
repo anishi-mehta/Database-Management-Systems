@@ -1,0 +1,174 @@
+#include<stdio.h>
+#include<string.h>
+#include<stdlib.h>
+
+EXEC SQL BEGIN DECLARE SECTION;
+int c, bid, visits, num, eid, cid, pid, iid;
+long int phone;
+float sales, qty, minqty, cp, sp;
+char query[500], buf[20], name[50], job[20], gender[1], fname[20], mname[1], lname[20];
+EXEC SQL END DECLARE SECTION;
+
+int main(){
+	EXEC SQL CONNECT TO "201401439@10.100.71.21:5432" AS main USER "201401439" IDENTIFIED BY "snuffles";
+	EXEC SQL set search_path to bakery;
+	int query_no;
+	printf("\nChoose the type of query you want to make : \n\n");
+        printf("1: Retrieve the products that have selling price lower than specified. \n");
+    	printf("2: Maximum visiting customer \n");
+    	printf("3: Sales where female employees having a particular job.\n");
+    	printf("4: Insert a customer \n");
+    	printf("5: Insert a product \n");
+    	printf("6: Update the price of an ingredient. \n");
+    	printf("7: Retrieve the ingredients that need to be restocked\n");
+    	printf("8: Delete a branch of the bakery.\n");
+    	printf("9: Exit\n");
+    	printf("Enter query number: ");
+   	scanf("%d",&query_no);
+	
+	switch(query_no){
+	case 1:	
+		strcpy(query, "SELECT productid, pname, sellingprice FROM product WHERE sellingprice<");
+		printf("Enter a selling price: ");
+		scanf("%f", &sp);
+		sprintf(buf, "%f", sp);
+		strcat(query, buf);
+		EXEC SQL PREPARE query1 FROM :query;
+		EXEC SQL DECLARE branch_cur CURSOR FOR query1;
+		EXEC SQL OPEN branch_cur;
+		while(sqlca.sqlcode == 0){
+			EXEC SQL FETCH branch_cur INTO :pid, :name, :sp;
+			if(sqlca.sqlcode == 0)
+				printf("ProductID: %d, Product Name: %s, Selling Price: %0.2f\n", pid, name, sp);
+			}
+		EXEC SQL CLOSE branch_cur;
+		EXEC SQL DEALLOCATE query1;
+		break;
+		
+	case 2: 
+		strcpy(query, "SELECT c.customerid, fname || lname AS name, no_of_visits FROM (SELECT customerid, COUNT(time) AS no_of_visits FROM visits GROUP BY customerid ORDER BY no_of_visits DESC LIMIT 1) as v JOIN customer as c ON c.customerid = v.customerid;");
+		EXEC SQL PREPARE query1 FROM :query;
+		EXEC SQL DECLARE branch_cur2 CURSOR FOR query1;
+		EXEC SQL OPEN branch_cur2;
+		while(sqlca.sqlcode == 0){
+			EXEC SQL FETCH branch_cur2 INTO :bid, :name, :visits;
+			if(sqlca.sqlcode == 0)
+				printf("BranchID: %d, Customer Name: %s, Number of Visits: %d\n", bid, name, visits);
+			}
+		EXEC SQL CLOSE branch_cur2;
+		EXEC SQL DEALLOCATE query1;
+		break;
+		
+	case 3:	
+	    strcpy(query, "SELECT empid, branchid, gender, sales_made FROM employee NATURAL JOIN (SELECT branchid, SUM(totamt) AS sales_made FROM sales GROUP BY branchid) AS a WHERE gender = 'F' AND job = \'");
+		scanf("%s", job);
+		strcat(query, job);
+		strcat(query, "\'");
+		EXEC SQL PREPARE query1 FROM :query;
+		EXEC SQL DECLARE branch_cur3 CURSOR FOR query1;
+		EXEC SQL OPEN branch_cur3;
+		while(sqlca.sqlcode == 0){
+			EXEC SQL FETCH branch_cur3 INTO :eid, :bid, :gender, :sales;
+			if(sqlca.sqlcode == 0)
+				printf("EmployeeID: %d, BranchID: %d, Gender: %s, Sales Made: %0.2f\n", eid, bid, gender, sales);
+			}
+		EXEC SQL CLOSE branch_cur3;
+		EXEC SQL DEALLOCATE query1;
+		break;
+	
+	case 4:
+		strcpy(query, "INSERT INTO customer VALUES(");
+		printf("Enter the details of customer in this format:\nCustomerid FirstName MiddleInitial LastName \n");
+		scanf("%d %s %s %s", &cid, fname, mname, lname);
+		sprintf(buf, "%d", cid);
+		strcat(query, buf);
+		strcat(query, ",\'");
+		strcat(query, fname);
+		strcat(query, "\',\'");
+		strcat(query, mname);
+		strcat(query, "\',\'");
+		strcat(query, lname);
+		strcat(query, "\')");
+		EXEC SQL PREPARE query1 FROM :query;
+		EXEC SQL EXECUTE query1;
+		EXEC SQL COMMIT;
+		EXEC SQL DEALLOCATE query1;
+		printf("A new customer has been inserted\n");
+		break;
+		
+	case 5: 
+		strcpy(query, "INSERT INTO product VALUES(");
+		printf("Enter the details of the product in this format:\nProductid ProductName cost_price selling _price \n");
+		scanf("%d %s %f %f", &pid, name, &cp, &sp);
+		sprintf(buf, "%d", pid);
+		strcat(query, buf);
+		strcat(query, ",\'");
+		strcat(query, name);
+		strcat(query, "\',");
+		sprintf(buf, "%f", cp);
+		strcat(query, buf);
+		strcat(query, ",");
+		sprintf(buf, "%f", sp);
+		strcat(query, buf);
+		strcat(query, ")");
+		EXEC SQL PREPARE query1 FROM :query;
+		EXEC SQL EXECUTE query1;
+		EXEC SQL COMMIT;
+		EXEC SQL DEALLOCATE query1;
+		printf("A new product has been inserted\n");
+		break;
+		
+	case 6:	
+		strcpy(query, "UPDATE ingredient SET price = ");
+		printf("Enter the details of the ingredient in this format:\nIngredientid CostPrice \n");
+		scanf("%d %f", &iid, &cp);
+		sprintf(buf, "%f", cp);
+		strcat(query, buf);
+		strcat(query, " WHERE ingredientid = ");
+		sprintf(buf, "%d", iid);
+		strcat(query, buf);
+		EXEC SQL PREPARE query1 FROM :query;
+		EXEC SQL EXECUTE query1;
+		EXEC SQL COMMIT;
+		EXEC SQL DEALLOCATE query1;
+		printf("Price of Ingredient %d was updated to %0.2f\n", iid, cp);
+		break;
+	
+	case 7:	
+		strcpy(query, "SELECT * FROM check_ingredients_stock()");
+		EXEC SQL PREPARE query1 FROM :query;
+		EXEC SQL DECLARE branch_cur4 CURSOR FOR query1;
+		EXEC SQL OPEN branch_cur4;
+		while(sqlca.sqlcode == 0){
+			EXEC SQL FETCH branch_cur4 INTO :iid, :name, :cp, :qty, :minqty;
+			if(sqlca.sqlcode == 0)
+				printf("IngredientID: %d, Ingredient Name: %s, Cost Price: %0.2f, Quantity Stored: %0.2f, Minimum Allowed Quantity: %0.2f\n", iid, name, cp, qty, minqty);
+		}
+		EXEC SQL CLOSE branch_cur4;
+		EXEC SQL DEALLOCATE query1;
+		break;
+
+	case 8:
+		strcpy(query, "DELETE FROM branch WHERE branchid = ");
+		printf("Enter the branchid you want to delete: ");
+		scanf("%d", &bid);
+		sprintf(buf, "%d", bid);
+		strcat(query, buf);
+		EXEC SQL PREPARE query1 FROM :query;
+		EXEC SQL EXECUTE query1;
+		EXEC SQL COMMIT;
+		EXEC SQL DEALLOCATE query1;
+		printf("Branch with ID %d was deleted.\n", bid);
+		break;
+	
+	case 9:
+		exit(0);
+		
+	 default:
+        printf("Correct choice not given\n");
+        break;
+	}
+		
+	return 0;
+}
+

@@ -1,0 +1,90 @@
+﻿IT 214- Database Management Systems
+DML Queries
+Group 5K
+Database for a Bakery
+Shilpi Chaudhuri (201401025)
+Nirvisha Mankad (201401421)
+Twisha Naik (201401425)
+Anishi Mehta (201401439)
+
+
+1. branch:
+INSERT INTO branch VALUES (1,'SanFrancisco');
+INSERT INTO branch VALUES (2,'SanDiego');
+INSERT INTO branch VALUES (3,'Sacramento');
+INSERT INTO branch VALUES (4,'MountainView');
+INSERT INTO branch VALUES (5,'LosAngeles');
+
+
+2. customer:
+INSERT INTO customer VALUES (1,'Nirvisha', 'P', 'Mankad');
+INSERT INTO customer VALUES (2,'Anishi', 'K', 'Mehta');
+INSERT INTO customer VALUES (3,'Twisha', 'G', 'Naik');
+INSERT INTO customer VALUES (4,'Shilpi', 'S', 'Chaudhuri');
+INSERT INTO customer VALUES (5,'Aarushi', 'I', 'Sanghani');
+
+
+3. visits
+INSERT INTO visits VALUES (1,'2016-01-12 13:00:34', 1);
+INSERT INTO visits VALUES (2,'2016-10-13 13:50:43', 1);
+INSERT INTO visits VALUES (3,'2016-01-16 12:00:34', 1);
+INSERT INTO visits VALUES (1,'2016-11-18 10:00:54', 2);
+INSERT INTO visits VALUES (1,'2016-03-12 09:00:34', 3);
+INSERT INTO visits VALUES (1,'2016-07-20 15:45:20', 4);
+INSERT INTO visits VALUES (1,'2016-08-30 15:50:23', 5);
+INSERT INTO visits VALUES (4,'2016-11-21 16:05:34', 2);
+
+
+4. sales 
+INSERT INTO sales VALUES (1, 1, 1,'2016-01-12 13:00:34', 300, 0, 0, 300);
+INSERT INTO sales VALUES (2, 2, 1,'2016-01-12 13:00:34', 400, 0, 0, 400);
+
+
+5. product
+INSERT INTO product VALUES (1, 'Brownie', 200,300);
+INSERT INTO product VALUES (2, 'Cookies', 300,400);
+
+
+6. sales_details
+INSERT INTO sales_details VALUES (1, 1, 1,300, 300);
+INSERT INTO sales_details VALUES (2, 2, 1,400, 400);
+
+
+7. member
+INSERT INTO member VALUES(1, 2, to_date('20 Oct 1996', 'DD Mon YYYY'), 50);
+
+
+8. inventory
+INSERT INTO inventory VALUES (1, 1, 10);
+INSERT INTO inventory VALUES (2, 1, 10);
+INSERT INTO inventory VALUES (3, 1, 10);
+
+
+9. ingredient
+INSERT INTO ingredient VALUES (1, 'Flour', 10, 100, 50);
+INSERT INTO ingredient VALUES (2, 'Butter', 10, 40, 50);
+
+
+10. employee
+INSERT INTO employee VALUES (1, 1, 'A','B', 'C', 'F', 3000, 'chef');
+INSERT INTO employee VALUES (3, 1, 'D','B', 'C', 'F', 3000, 'waiter');
+INSERT INTO employee VALUES (2, 1, 'D','B', 'C', 'F', 3000, 'waiter');
+
+
+11. recipe
+ INSERT INTO recipe VALUES (2,2,100);
+
+
+12. Discount:
+INSERT INTO discount VALUES(0,0);
+INSERT INTO discount VALUES(50,2);
+INSERT INTO discount VALUES(100,5);
+INSERT INTO discount VALUES(500,10);
+
+
+13.
+UPDATE ingredient SET price = 20 WHERE ingredientid = 2;        
+
+
+14. 
+DELETE FROM branch WHERE branchid=11;
